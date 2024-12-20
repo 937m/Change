@@ -1,0 +1,20 @@
+数据在网络间通信是以数据帧为基本单位进行传输的。数据帧的格式：帧头、数据、帧尾。
+
+can总线 数据帧大小是8字节
+
+SPI通信传输：大包最大512字节，小包最大255字节，由多个小包组成一个大包进行传输
+大包内容：前7个字节(byte0 - byte6)是固定格式，之后是小包内容，末尾是checksum。
+小包内容：前6个字节(byte0 - byte5)是固定格式，之后是数据，末尾是checksum。
+SPI六线传输控制
+MISO：Master Input Slave Output，主设备数据输入，从设备数据输出；
+MOSI：Master Output Slave Input，主设备数据输出，从设备数据输入
+SCLK：Serial Clock，时钟信号，由主设备产生；
+CS：Chip Select，从设备使能信号，由主设备控制
+S Ready Int：Slave Ready interrupt,从设备准备好数据传输，通知Master开始传输，中断触发
+MFIN：Master Finish，Master数据处理完，通知Slave进行下一次传输。
+
+一次SPI传输过程如下：
+1）MCU(Slave)准备好传输数据之后，通过S Ready Int通知NAD(Master)可以开始传输。
+2）NAD(Master)接收到S Ready Int中断信号之后，发送时钟启动一次SPI传输。
+3）NAD(Master)传输完成并处理完接收的数据，能够启动下一次传输之前，通过反转M FIN的信号通知MCU(Slave)可以开始下一次传输
+4）MCU(Slave)处理完成当前传输数据以及接收到M FIN的反转信号之后，认为可以启动下一次输出，继续1）的处理。
