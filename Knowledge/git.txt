@@ -112,8 +112,15 @@ git reset HEAD^      回退上一笔提交
 git commit --amend --no-edit           上一次提交的内容有错误，需要重新提交时使用该命令，详情参考利用`git commit —amend —no-edit`命令修改上一次变更内容-CSDN博客
 这只是一些常见的Git命令，Git还有很多其他功能，可以根据实际需求使用不同的命令。
 
-
-
+*********************************************
+如果不知道怎么在同一笔change上提交，可以参考下面的方法：
+merge request页面右上角三个点，点击选择download patch, 复制下面的cherry pick那一行命令
+在服务器上对应仓库中复制命令把change下载到本地
+修改代码
+git add *
+git commit --amend --no-edit
+git push origin HEAD:refs/for/RN93_SA522
+*********************************************
 
 
 
