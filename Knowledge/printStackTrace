@@ -1,0 +1,99 @@
+#include <iostream>
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
+
+DLT_DECLARE_CONTEXT(NAME_SERVICE_CONTEXT);
+
+static void PrintStackTrace()
+{
+    constexpr size_t BACKTRACE_SIZE = 50U;
+    constexpr size_t BACKTRACE_ERROR_SIZE = 0U;
+    std::vector<void*> backTrace(BACKTRACE_SIZE);
+    size_t const size = static_cast<size_t>(backtrace(backTrace.data(), static_cast<int32_t>(backTrace.size())));
+    if (size == BACKTRACE_ERROR_SIZE)
+    {
+        DLT_NAME_WARN_LOG("[Dump] backtrace failed.");
+        return;
+    }
+    backTrace.resize(size);
+    char** const rawSymbols = backtrace_symbols(backTrace.data(), static_cast<int32_t>(size));
+    if (rawSymbols == nullptr)
+    {
+        DLT_NAME_WARN_LOG("[Dump] backtrace_symbols abnormal.");
+        return;
+    }
+
+    std::unique_ptr<char* [], void(*)(void*)> symbols(rawSymbols, &std::free);
+    const std::vector<const char*> symbolVec(rawSymbols, rawSymbols + size);
+    for (const char* const& sym : symbolVec)
+    {
+        DLT_NAME_WARN_LOG("[Dump] %s", sym);
+    }
+    return;
+}
+
+static void SignalHandler(int32_t const signum)
+{
+    DLT_NAME_WARN_LOG("Program exit and Caught signal: [%d]", signum);
+    if (SIGTERM == signum)
+    {
+        DLT_NAME_WARN_LOG("Stopping");
+        //static_cast<void>(sd_notify(0, "STOPPING=1"));
+    }
+    PrintStackTrace();
+
+
+
+    DLT_UNREGISTER_CONTEXT(SERVICE_CONTEXT);
+    DLT_UNREGISTER_APP();
+
+    int32_t const quick_code = 0;
+    std::quick_exit(quick_code);
+}
+
+static void RegisterSignalHandlers()
+{
+    DLT_NAME_WARN_LOG("Registering signal handlers");
+    /* Define the list of signals to handle */
+    constexpr int32_t signum = 9;
+    //9 signals id = 2,3,4,6,7,8,9,11,15
+    //not used id 1:SIGHUP
+    //not used id 5:SIGTRAP
+    //not used id 10:SIGUSR1
+    //not used id 12:SIGUSR2
+    //not used id 13:SIGPIPE
+    //not used id 14:SIGALRM
+    std::array<int32_t, signum> const signals = { SIGINT, SIGQUIT, SIGILL, SIGABRT, SIGBUS, SIGFPE, SIGKILL, SIGSEGV, SIGTERM };
+    struct sigaction sa;
+    sa.sa_handler = &SignalHandler;
+    static_cast<void>(sigemptyset(&sa.sa_mask));
+    sa.sa_flags = 0;
+    for (int32_t const sig : signals)
+    {
+        /* Register the signal processor */
+        static_cast<void>(sigaction(sig, &sa, nullptr));
+    }
+}
+
+int32_t main(int32_t const argc, const char* const argv[])
+{
+    UNUSED(argc);
+    UNUSED(argv);
+
+    DLT_REGISTER_APP("NAME", "Register Module/Service name");
+    DLT_REGISTER_CONTEXT(NAME_SERVICE_CONTEXT, "NAME", "This is NAME Service");
+    DLT_ENABLE_LOCAL_PRINT();
+
+    DLT_NAME_WARN_LOG("***** NAME Service Start(Yead/Month/Day) *****");
+
+    RegisterSignalHandlers();
+
+    /* Initialize other components here */
+
+
+    DLT_UNREGISTER_CONTEXT(NAME_SERVICE_CONTEXT);
+    DLT_UNREGISTER_APP();
+
+    return 0;
+}
