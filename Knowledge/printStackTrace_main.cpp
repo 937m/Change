@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <execinfo.h>
 #include <signal.h>
+#include "service_dltlog.hpp"
 
 DLT_DECLARE_CONTEXT(NAME_SERVICE_CONTEXT);
 
